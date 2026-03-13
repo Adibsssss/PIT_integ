@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-jzmz_v^3$hmu6=cou)$1cy16&+j*)y70a8@6#ruk(c%(p@mw6('
+SECRET_KEY = 'django-insecure-=iuk2u@qy3i$b60cw*p#8isy*19h*k*e525akal&ytw+@7hf!)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,9 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'rest_framework',
+    'corsheaders',
+    'adetxinteg',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -74,8 +80,12 @@ WSGI_APPLICATION = 'base.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'appdev_integ_pit',   
+        'USER': 'root',             
+        'PASSWORD': '', 
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
@@ -115,3 +125,32 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+SIMPLE_JWT = {
+    # Extends the access token from 5 minutes to 1 full day
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    
+    # Extends the refresh token to 7 days
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# STATIC FILES (Your developer assets)
+STATIC_URL = 'static/'
+
+# MEDIA FILES (User uploaded assets - MUST be completely separate from static)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Bonus fix for that "DEFAULT_AUTO_FIELD" warning at the top of your terminal:
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
