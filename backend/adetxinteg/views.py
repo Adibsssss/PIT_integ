@@ -80,3 +80,47 @@ def product_detail(request, pk):
     elif request.method == 'DELETE':
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+# ==========================================
+# NEW: CART ENDPOINTS
+# ==========================================
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def manage_cart(request):
+    user = request.user
+
+    if request.method == 'GET':
+        cart_items = CartItem.objects.filter(user=user)
+        serializer = CartItemSerializer(cart_items, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Expects {"product_id": 1, "quantity": 1} from React
+        product_id = request.data.get('product_id')
+        qty = request.data.get('quantity', 1)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({'detail': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if item is already in cart, if so, just increase quantity
+        cart_item, created = CartItem.objects.get_or_create(user=user, product=product)
+        if not created:
+            cart_item.quantity += int(qty)
+            cart_item.save()
+        else:
+            cart_item.quantity = int(qty)
+            cart_item.save()
+
+        serializer = CartItemSerializer(cart_item)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_cart_item(request, pk):
+    try:
+        cart_item = CartItem.objects.get(id=pk, user=request.user)
+        cart_item.delete()
+        return Response({'detail': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
+    except CartItem.DoesNotExist:
+        return Response({'detail': 'Cart item not found'}, status=status.HTTP_404_NOT_FOUND)
