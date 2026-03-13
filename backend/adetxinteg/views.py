@@ -34,3 +34,24 @@ def get_user_profile(request):
     user = request.user
     serializer = UserSerializer(user, many=False)
     return Response(serializer.data)
+
+# ==========================================
+# PRODUCT ENDPOINTS (Unchanged)
+# ==========================================
+
+@api_view(['GET', 'POST'])
+def product_list(request):
+    if request.method == 'GET':
+        products = Product.objects.all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        if not request.user.is_staff:
+            return Response({'detail': 'Not authorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
