@@ -124,3 +124,45 @@ def delete_cart_item(request, pk):
         return Response({'detail': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
     except CartItem.DoesNotExist:
         return Response({'detail': 'Cart item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # ==========================================
+# NEW: ORDER & CHECKOUT ENDPOINTS
+# ==========================================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic # Prevents partial saves if an error occurs during checkout
+def checkout(request):
+    user = request.user
+    cart_items = CartItem.objects.filter(user=user)
+
+    if len(cart_items) == 0:
+        return Response({'detail': 'Your cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+    shipping_address = request.data.get('shipping_address')
+    if not shipping_address:
+        return Response({'detail': 'Shipping address is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 1. Calculate Grand Total
+    total_amount = sum(item.product.price * item.quantity for item in cart_items)
+
+    # 2. Create the Order Header
+    order = Order.objects.create(
+        user=user,
+        total_amount=total_amount,
+        shipping_address=shipping_address
+    )
+
+    # 3. Create the Order Items (Receipt Details)
+    for item in cart_items:
+        OrderItem.objects.create(
+            order=order,
+            product=item.product,
+            quantity=item.quantity,
+            price_at_purchase=item.product.price # Locks in the historical price!
+        )
+
+    # 4. Wipe the user's cart clean
+    cart_items.delete()
+
+    serializer = OrderSerializer(order, many=False)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
