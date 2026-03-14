@@ -179,3 +179,23 @@ def get_orders(request):
         
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser]) # Only admins can change shipping status!
+
+def update_order_status(request, pk):
+
+    try:
+
+        order = Order.objects.get(pk=pk)
+
+        order.status = request.data.get('status', order.status)
+
+        order.save()
+
+        return Response({'detail': 'Status updated successfully', 'status': order.status})
+
+    except Order.DoesNotExist:
+
+        return Response({'detail': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
