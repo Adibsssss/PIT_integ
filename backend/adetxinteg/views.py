@@ -165,4 +165,17 @@ def checkout(request):
     cart_items.delete()
 
     serializer = OrderSerializer(order, many=False)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.data, status=status.HTTP_201_CREATED
+    )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_orders(request):
+    # Admins see everything, normal users see only their own history
+    if request.user.is_staff:
+        orders = Order.objects.all().order_by('-order_date')
+    else:
+        orders = Order.objects.filter(user=request.user).order_by('-order_date')
+        
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
